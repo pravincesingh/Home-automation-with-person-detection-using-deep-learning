@@ -1,22 +1,22 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Aug 11 17:31:18 2019
-
-@author: HP
-"""
+#Project Submitted by Joydip Dutta(ECE), Pravince Kumar(CSE), Dharmendra Kumar(CSE), RIET College Jaipur
 
 import cv2
 import numpy as np
 import time
+# import serial
 
-# Load Yolo
+#Load Yolo
 net = cv2.dnn.readNet("yolov3-tiny.weights", "cfg/yolov3-tiny.cfg")
 classes = []
+
+# Arduino_Serial = serial.Serial('com4', 9600, timeout=1)
+
+
 with open("coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
 layer_names = net.getLayerNames()
 output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
-colors = np.random.uniform(0, 255, size=(len(classes), 3))
+# colors = np.random.uniform(0, 255, size=(len(classes), 3))
 
 # Loading image
 cap = cv2.VideoCapture(0)
@@ -24,7 +24,7 @@ cap = cv2.VideoCapture(0)
 font = cv2.FONT_HERSHEY_PLAIN
 starting_time = time.time()
 frame_id = 0
-while(cv2.waitKey(1)!=ord('q')):
+while True:
     _, frame = cap.read()
     frame_id += 1
 
@@ -44,8 +44,8 @@ while(cv2.waitKey(1)!=ord('q')):
         for detection in out:
             scores = detection[5:]
             class_id = np.argmax(scores)
-            confidence = scores[class_id]
-            if confidence > 0.1:
+            confidence = scores[0]*100
+            if confidence > 25:
                 # Object detected
                 center_x = int(detection[0] * width)
                 center_y = int(detection[1] * height)
@@ -61,28 +61,51 @@ while(cv2.waitKey(1)!=ord('q')):
                 class_ids.append(class_id)
 
     indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.8, 0.3)
-    n=0
+
     file1 = open("Person.txt","a")
+    n = 0
     for i in range(len(boxes)):
+
         if i in indexes:
-            n=n+1
+            n = n + 1
             x, y, w, h = boxes[i]
             label = str(classes[class_ids[i]])
             confidence = confidences[i]
-            color = colors[class_ids[i]]
-            cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-            cv2.putText(frame, label + " " + str(round(confidence, 2)), (x, y + 30), font, 3, color, 3)
-#        print(n)
-        
-        file1.write(str(n)+" ")
+            #color = colors[class_ids[i]]
+
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0,155,0), 2)
+
+            cv2.putText(frame, label + " " + str(round(confidence, 2)), (x, y + 30), font, 3, (0,0,255), 3)
+
+
+        print(n)
+#To enable arduino uncomment the following code
+        # if n == 1:
+        #     Arduino_Serial.write(b'1')
+        #     # print("LED ON")
+        # elif n == 2:
+        #     Arduino_Serial.write(b'2')
+        # elif n == 0:
+        #     Arduino_Serial.write(b'0')
+        #     #     # time.sleep(2)
+        #     # print("LED off")
+
+    file1.write(str(n)+" ")
     file1.close()
-
-
 
     elapsed_time = time.time() - starting_time
     fps = frame_id / elapsed_time
-    cv2.putText(frame, "FPS: " + str(round(fps, 2)), (10, 50), font, 4, (0, 0, 0), 3)
+    # cv2.putText(frame, "FPS: " + str(round(fps, 2)), (200, 50), font, 4, (0, 0, 255), 3)
+    cv2.putText(frame,"Project Submitted by Joydip,Pravince And Dharmendra", (10, 20), font, 1, (0, 255, 0), 1)
+    cv2.putText(frame,"Counted People:" + str(n), (10, 45), font, 1, (0, 0, 255), 1)
     cv2.imshow("Image", frame)
+
+
+    if(cv2.waitKey(1) == ord('q')):
+        # Arduino_Serial.write(b'0')
+        break
 
 cap.release()
 cv2.destroyAllWindows()
+
+
